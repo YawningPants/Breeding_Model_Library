@@ -2,7 +2,7 @@
 
 ![SiamRPN_plus_plus_pipeline](assets/SiamRPN_plus_plus_pipeline.png)
 
-这是 [SiamRPN++ (CVPR2019)](https://arxiv.org/pdf/1812.11703.pdf)的非官方PyTorch版本, 由 **[Peng Xu](http://www.pengxu.net)** 和 **[Jin Feng](https://github.com/JinDouer)**实现。可以在多个GPU中运行，并使用LMDB加速数据读
+这是 [SiamRPN++ (CVPR2019)](https://arxiv.org/pdf/1812.11703.pdf)的非官方PyTorch版本, 由 **[Peng Xu](http://www.pengxu.net)** 和 **[Jin Feng](https://github.com/JinDouer)** 实现。可以在多个GPU中运行，并使用LMDB加速数据读
 
 本项目可以在ILSVRC2015_VID数据集上训练。
 
