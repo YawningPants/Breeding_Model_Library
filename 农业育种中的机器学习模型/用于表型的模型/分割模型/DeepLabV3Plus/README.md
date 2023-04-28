@@ -19,7 +19,7 @@ torch==1.2.0
 训练所需的deeplab_mobilenetv2.pth和deeplab_xception.pth可在百度网盘中下载。     
 链接: https://pan.baidu.com/s/1IQ3XYW-yRWQAy7jxCUHq8Q 提取码: qqq4   
 
-我们提供了一个VOC格式的植物分割的数据集示例，下载地址如下： 
+我们提供了一个VOC格式的植物分割的数据集示例，下载地址如下：    
 链接：https://pan.baidu.com/s/1kuWon5NaDr_iWBT0UP0Olw?pwd=zivn 
 提取码：zivn  
 
