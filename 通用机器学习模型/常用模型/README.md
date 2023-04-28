@@ -2,11 +2,12 @@
 
 以下是本模型库中实现的五种机器学习算法的代码介绍：
 
-1. [K最近邻](#k Nearest Neighbor（K最近邻算法）)
-2. [逻辑回归](#Logistic Regression（逻辑回归）)
-3. [朴素贝叶斯](#Naive Bayes（朴素贝叶斯算法）)
-4. [随机森林](#Random Forest（随机森林）)
-5. [支持向量机](#Support Vector Machine（支持向量机）)
+
+1. k Nearest Neighbor（K最近邻算法）)
+2. Logistic Regression（逻辑回归）
+3. Naive Bayes（朴素贝叶斯算法）
+4. Random Forest（随机森林）
+5. Support Vector Machine（支持向量机）
 
 # k Nearest Neighbor（K最近邻）
 
