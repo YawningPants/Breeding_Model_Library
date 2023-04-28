@@ -1,163 +1,55 @@
 # SiamRPN++_PyTorch 
 
+![SiamRPN_plus_plus_pipeline](assets/SiamRPN_plus_plus_pipeline.png)
 
-<div align=center><img src="https://github.com/PengBoXiangShang/SiamRPN_plus_plus_Pytorch/blob/master/illustration/SiamRPN_plus_plus_pipeline.png"/></div>
+这是 [SiamRPN++ (CVPR2019)](https://arxiv.org/pdf/1812.11703.pdf)的非官方PyTorch版本, 由 **[Peng Xu](http://www.pengxu.net)** 和**[Jin Feng](https://github.com/JinDouer)**实现。可以在多个GPU中运行，并使用LMDB加速数据读
 
-This is an unofficial PyTorch implementation of [SiamRPN++ (CVPR2019)](https://arxiv.org/pdf/1812.11703.pdf), implemented by **[Peng Xu](http://www.pengxu.net)** and **[Jin Feng](https://github.com/JinDouer)**. Our **training** can be conducted on **multi-GPUs**, and use **LMDB** data format to speed up the data loading.
+本项目可以在ILSVRC2015_VID数据集上训练。
 
-This project is designed with these goals:
-- [x] Training on ILSVRC2015_VID dataset.
-- [ ] Training on GOT-10k dataset.
-- [ ] Training on YouTube-BoundingBoxes dataset.
-- [ ] Evaluate the performance on tracking benchmarks.
 
-## Details of SiamRPN++ Network
-As stated in the original paper, SiamRPN++ network has three parts, including Backbone Networks, SiamRPN Blocks, and Weighted Fusion Layers.
 
-**1. Backbone Network (modified ResNet-50)**
-
-As stated in the original paper, SiamRPN++ uses ResNet-50 as backbone by modifying the strides and adding dilated convolutions for *conv4* and *conv5* blocks. Here, we present the detailed comparison between original ResNet-50 and SiamRPN++ ResNet-50 backbone in following table.
-
-<table>
-   <tr>
-      <td colspan = 2 rowspan=2></td>
-      <td colspan = 3 style="text-align: center;">bottleneck in conv4</td>
-      <td colspan = 3 style="text-align: center;">bottleneck in conv5</td>
-   </tr>
-   <tr>
-      <td>conv1x1</td>
-      <td>conv3x3</td>
-      <td>conv1x1</td>
-      <td>conv1x1</td>
-      <td>conv3x3</td>
-      <td>conv1x1</td>
-   </tr>
-   <tr>
-      <td rowspan = 3>original ResNet-50</td>
-      <td>stride</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-   </tr>
-   <tr>
-      <td>padding</td>
-      <td>0</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>1</td>
-      <td>0</td>
-   </tr>
-   <tr>
-      <td>dilation</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-   </tr>
-   <tr>
-      <td rowspan=3>ResNet-50 in SiamRPN++</td>
-      <td>stride</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-   </tr>
-   <tr>
-      <td>padding</td>
-      <td>0</td>
-      <td>2</td>
-      <td>0</td>
-      <td>0</td>
-      <td>4</td>
-      <td>0</td>
-   </tr>
-   <tr>
-      <td>dilation</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-      <td>1</td>
-      <td>4</td>
-      <td>1</td>
-   </tr>
-</table>
-
-**2. SiamRPN Block**
-
-Based on our understanding to the original paper, we plot a architecture illustration to describe the *Siamese RPN* block as shown in following.
-
-<div align=center><img src="https://github.com/PengBoXiangShang/SiamRPN_plus_plus_Pytorch/blob/master/illustration/RPN.png"/></div>
-
-We also present the detailed configurations of each layer of RPN block in following table. Please see more details in [./network/RPN.py](https://github.com/PengBoXiangShang/SiamRPN_plus_plus_Pytorch/blob/master/network/RPN.py).
-
-|component|configuration|
-|:---|:---|
-|adj_1 / adj_2 / adj_3 / adj_4|conv2d(256, 256, ksize=3, pad=1, stride=1), BN2d(256)|
-|fusion_module_1 / fusion_module_2|conv2d(256, 256, ksize=1, pad=0, stride=1), BN2d(256), ReLU|
-|box head|conv2d(256, 4*5, ksize=1, pad=0, stride=1)|
-|cls head|conv2d(256, 2*5, ksize=1, pad=0, stride=1)|
-
-**3. Weighted Fusion Layer** 
-
-We implemente the *weighted fusion layer* via **group convolution operations**. Please see details in [./network/SiamRPN.py](https://github.com/PengBoXiangShang/SiamRPN_plus_plus_Pytorch/blob/master/network/SiamRPN.py).
-
-## Requirements
-Ubuntu 14.04
-
-Python 2.7
-
-PyTorch 0.4.0
-
-Other main requirements can be installed by:
+## 环境配置
 
 ```
-# 1. Install cv2 package.
+# 1. 安装cv2包
 conda install opencv
 
-# 2. Install LMDB package.
+# 2. 安装lmdb包
 conda install lmdb
 
-# 3. Install fire package.
+# 3. 安装fire包
 pip install fire -c conda-forge
 ```
 
-
-## Training Instructions
+## 训练步骤
 
 ```
-# 1. Clone this repository to your disk.
-git clone https://github.com/PengBoXiangShang/SiamRPN_plus_plus_PyTorch.git
+# 1. 将我们的项目拷贝到本地
 
-# 2. Change working directory.
+
+# 2. 进入SiamRPN_plus_plus_PyTorch文件夹
 cd SiamRPN_plus_plus_PyTorch
 
-# 3. Download training data. In this project, we provide the downloading and preprocessing scripts for ILSVRC2015_VID dataset. Please download ILSVRC2015_VID dataset (86GB). The cripts for other tracking datasets are coming soon.
+# 3. 下载训练数据。在这个项目中，我们提供了ILSVRC2015_VID数据集的下载和预处理脚本。请下载ILSVRC2015_VID数据集（86GB）。
 cd data
 wget -c http://bvisionweb1.cs.unc.edu/ilsvrc2015/ILSVRC2015_VID.tar.gz
 tar -xvf ILSVRC2015_VID.tar.gz
 rm ILSVRC2015_VID.tar.gz
 cd ..
 
-# 4. Preprocess data.
+# 4. 数据预处理
 chmod u+x ./preprocessing/create_dataset.sh
 ./preprocessing/create_dataset.sh
 
-# 5. Pack the preprocessed data into LMDB format to accelerate data loading.
+# 5. 将经过预处理的数据打包为LMDB格式，以加速数据加载。
 chmod u+x ./preprocessing/create_lmdb.sh
 ./preprocessing/create_lmdb.sh
 
-# 6. Start the training.
+# 6. 开始训练
 chmod u+x ./train.sh
 ./train.sh
 ```
 
-## Acknowledgement
-Many thanks to [Sisi](https://github.com/noCodegirl) who helps us to download the huge ILSVRC2015_VID dataset.
+## 参考资料
+
+https://github.com/PengBoXiangShang/SiamRPN_plus_plus_PyTorch#requirements
