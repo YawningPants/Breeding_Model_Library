@@ -1,55 +1,57 @@
-# data augmentation（数据增广）
+# 数据增广技术
 
+在机器学习中，数据增强是一种常用的技术，它可以通过对原始数据进行一系列变换来生成新的训练数据，以增加数据的多样性和数量，从而提高模型的泛化能力和鲁棒性。其中，弱增强（weak augmentation）和强增强（strong augmentation）是两种不同的增强方式，而Mixup是一种数据增强技术。
 
-这段代码是一个PyTorch程序，用于图像增广（data augmentation）。图像增广是数据预处理中经常使用的技术，通过对图像进行多种变换，可以增加数据的多样性，从而提高模型的泛化能力和鲁棒性。
+弱增强通常是指对数据进行一些简单的变换，例如旋转、平移、缩放、翻转等，以增加数据的多样性，同时保留数据的基本特征。这种增强方式通常用于数据量较少的情况下，可以有效地减少过拟合的风险。
 
-首先，该程序通过导入PyTorch库和一些相关的模块，如transforms和Image，准备了必要的工具。
+强增强则是指对数据进行更加复杂的变换，例如扭曲、剪切、变形、颜色变换等，以产生更多的变化和多样性。这种增强方式通常用于数据量较大的情况下，可以进一步提高模型的泛化能力和鲁棒性。
 
-```
+Mixup是一种数据增强技术，它通过将两个不同的样本进行线性插值来生成新的训练样本。具体来说，对于两个输入样本$x_1$和$x_2$，以及它们对应的标签$y_1$和$y_2$，mixup会生成一个新的样本$x_{new}$和标签$y_{new}$，其中$x_{new} = λ * x_1 + (1-λ) * x_2$，$y_{new} = λ * y1 + (1-λ) * y_2$，其中$λ$是一个在0和1之间的随机数。这种方法可以增加数据的多样性，同时减少过拟合的风险。
+
+```python
 import torch
 import torchvision.transforms as transforms
+from torchvision.transforms import functional as F
 from PIL import Image
-```
 
-然后，程序加载了一张图像（./data/BlackGrass/0ace21089.png）作为增广的对象。这里使用了PIL库中的Image.open()函数，将图像以PIL图像的形式打开。
-
-```
-image = Image.open('./data/BlackGrass/0ace21089.png')
-```
-
-接下来，程序定义了一个数据增广器（transform），它是一个由多个变换操作组成的序列。变换操作的顺序很重要，因为它们会对图像进行不同的修改，对最终的结果产生影响。
-
-```
-transform = transforms.Compose([
-    transforms.RandomResizedCrop(size=224, scale=(0.8, 1.0)),
+# Weak augmentation
+transform_weak = transforms.Compose([
+    transforms.RandomRotation(10),
     transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
-    transforms.RandomRotation(20),
-    transforms.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1.1), shear=10),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    transforms.RandomResizedCrop(size=224, scale=(0.8, 1.0)),
+    transforms.To(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
+
+# Strong augmentation
+transform_strong = transforms.Compose([
+    transforms.RandomRotation(30),
+    transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2),
+    transforms.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=10),
+    transforms.RandomResizedCrop(size=224, scale=(0.6, 1.0)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+# Mix up
+def mixup_data(x, y, alpha=1.0):
+    lam = torch.tensor(np.random.beta(alpha, alpha, size=x.size(0)), dtype=torch.float32)
+    index = torch.randperm(x.size(0))
+    mixed_x = lam.view(-1, 1, 1, 1) * x + (1 - lam.view(-1, 1, 1, 1)) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+def mixup_criterion(criterion, pred, y_a, y_b, lam):
+    return (lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)).mean()
+
+# Example usage
+img = Image.open('example.jpg')
+img_weak = transform_weak(img)
+img_strong = transform_strong(img)
+x, y = img_weak.unsqueeze(0), torch.tensor([0])
+mixed_x, y_a, y_b, lam = mixup_data(x, y)
 ```
 
-具体来说，这个数据增广器包含了以下变换操作：
-
-1. 随机缩放裁剪（RandomResizedCrop）：在输入图像中随机裁剪一个指定大小的区域，并进行缩放，使其大小符合模型的输入要求。
-2. 随机水平翻转（RandomHorizontalFlip）：以50%的概率对输入图像进行水平翻转。
-3. 颜色抖动（ColorJitter）：随机调整图像的亮度、对比度、饱和度和色调。
-4. 随机旋转（RandomRotation）：随机旋转输入图像一定角度。
-5. 仿射变换（RandomAffine）：随机进行一组仿射变换（平移、缩放、旋转、切变）。
-6. 转换为张量（ToTensor）：将PIL图像转换为PyTorch张量。
-7. 标准化（Normalize）：对每个通道进行标准化，使得它们的均值为0，标准差为1。
-
-最后，程序使用定义好的数据增广器对输入图像进行增广，并将结果以PIL图像的形式显示出来。具体来说，程序调用了数据增广器的__call__()方法，将输入图像作为参数传入，得到增广后的结果。由于输出结果是一个PyTorch张量，所以程序使用transforms.ToPILImage()函数将其转换为PIL图像，并调用show()方法显示出来。
-
-```
-# 对图像进行增广
-augmented_image = transform(image)
-
-# 将增广后的图像转换为PIL图像
-augmented_image = transforms.ToPILImage()(augmented_image)
-
-# 显示增广后的图像
-augmented_image.show()
-```
+在上面的代码中，我们使用了torchvision中的一些常用的数据增强方法，如RandomRotation、RandomHorizontalFlip、ColorJitter、RandomResizedCrop等。对于mix up，我们定义了两个辅助函数mixup_data和mixup_criterion，用于生成混合数据和计算损失。在使用时，我们可以将增强后的图像作为模型的输入，或者将混合数据作为模型的输入和标签。
