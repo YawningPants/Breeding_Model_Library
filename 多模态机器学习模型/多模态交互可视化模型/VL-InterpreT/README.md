@@ -3,10 +3,16 @@
 VL InterpreT是一个交互式的可视化工具，用于解释视觉语言transformer中的注意力和数据表征。它是一个集成的通用工具，具有以下功能：
 
 - 在多层transformer模型中，跟踪视觉和语言组件中各层中各个注意力头的数据。
+
 - 通过可视化技术，将模型的关注力热力图呈现出来，以展示不同层次的注意力在跨模态和内部模态之间的变化。
+
 - 绘制视觉和语言令牌在经过变压器层时的隐藏表示。
 
-![image-20230505193616233](assets/VL-InterpreT workflow.png)
+  
+
+  <p align="center">
+    <img src="assets/VL-InterpreT workflow.png" alt="VL-InterpreT workflow" width="850"/>
+  </p>
 
 
 
