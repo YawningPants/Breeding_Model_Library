@@ -9,49 +9,120 @@
 Mixup是一种数据增强技术，它通过将两个不同的样本进行线性插值来生成新的训练样本。具体来说，对于两个输入样本$x_1$和$x_2$，以及它们对应的标签$y_1$和$y_2$，mixup会生成一个新的样本$x_{new}$和标签$y_{new}$，其中$x_{new} = λ * x_1 + (1-λ) * x_2$，$y_{new} = λ * y1 + (1-λ) * y_2$，其中$λ$是一个在0和1之间的随机数。这种方法可以增加数据的多样性，同时减少过拟合的风险。
 
 ```python
+import numpy as np
 import torch
 import torchvision.transforms as transforms
-from torchvision.transforms import functional as F
 from PIL import Image
+import matplotlib.pyplot as plt
 
-# Weak augmentation
-transform_weak = transforms.Compose([
-    transforms.RandomRotation(10),
+# 加载图像
+image_path = './example.png'
+image = Image.open(image_path)
+
+
+# 弱增强
+weak_augmentation = transforms.Compose([
     transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-    transforms.RandomResizedCrop(size=224, scale=(0.8, 1.0)),
-    transforms.To(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.RandomCrop(300, padding=4),
+    transforms.ToTensor()
+#     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-# Strong augmentation
-transform_strong = transforms.Compose([
-    transforms.RandomRotation(30),
+# 强增强
+strong_augmentation = transforms.Compose([
     transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.2),
-    transforms.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=10),
-    transforms.RandomResizedCrop(size=224, scale=(0.6, 1.0)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.RandomCrop(300, padding=4),
+    transforms.RandomApply([transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1)], p=0.8),
+    transforms.RandomGrayscale(p=0.2),
+    transforms.ToTensor()
+#     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-# Mix up
-def mixup_data(x, y, alpha=1.0):
-    lam = torch.tensor(np.random.beta(alpha, alpha, size=x.size(0)), dtype=torch.float32)
-    index = torch.randperm(x.size(0))
-    mixed_x = lam.view(-1, 1, 1, 1) * x + (1 - lam.view(-1, 1, 1, 1)) * x[index, :]
-    y_a, y_b = y, y[index]
-    return mixed_x, y_a, y_b, lam
 
-def mixup_criterion(criterion, pred, y_a, y_b, lam):
-    return (lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)).mean()
+# 应用弱增强
+weak_augmented_image = weak_augmentation(image)
 
-# Example usage
-img = Image.open('example.jpg')
-img_weak = transform_weak(img)
-img_strong = transform_strong(img)
-x, y = img_weak.unsqueeze(0), torch.tensor([0])
-mixed_x, y_a, y_b, lam = mixup_data(x, y)
+# 应用强增强
+strong_augmented_image = strong_augmentation(image)
+
+
+# 展示原始图像和增强后的图像
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+axes[0].imshow(image)
+axes[0].set_title('Original Image')
+axes[1].imshow(transforms.ToPILImage()(weak_augmented_image))
+axes[1].set_title('Weak Augmentation')
+axes[2].imshow(transforms.ToPILImage()(strong_augmented_image))
+axes[2].set_title('Strong Augmentation')
+
+
+for ax in axes:
+    ax.axis('off')
+
+plt.show()
 ```
 
-在上面的代码中，我们使用了torchvision中的一些常用的数据增强方法，如RandomRotation、RandomHorizontalFlip、ColorJitter、RandomResizedCrop等。对于mix up，我们定义了两个辅助函数mixup_data和mixup_criterion，用于生成混合数据和计算损失。在使用时，我们可以将增强后的图像作为模型的输入，或者将混合数据作为模型的输入和标签。
+在上面的代码中，我们使用了torchvision中的一些常用的数据增强方法，如RandomRotation、RandomHorizontalFlip、ColorJitter、RandomResizedCrop等。以下是强增强和弱增强的结果：
+
+<img src="assets/image-20230505212836701.png" alt="image-20230505212836701" style="zoom:50%;" />
+
+```python
+import numpy as np
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# 加载图像
+image_path1 = './example.png'
+image_path2 = './example2.png'
+image1 = Image.open(image_path1)
+image2 = Image.open(image_path2)
+
+crop = transforms.Compose([
+    transforms.CenterCrop(300),
+    transforms.ToTensor(),
+])
+# MixUp增强
+class MixUp:
+    def __init__(self, alpha=1.0):
+        self.alpha = alpha
+
+    def __call__(self, images):
+        images = [crop(image) for image in images]
+        batch = torch.stack(images)
+        batch_size = batch.size(0)
+        indices = torch.randperm(batch_size)
+        shuffled_data = batch[indices]
+        
+        lam = torch.Tensor([np.random.beta(self.alpha, self.alpha)]).expand(batch_size, 1, 1, 1)
+        mixed_data = lam * batch + (1 - lam) * shuffled_data
+        mixed_images = [transforms.ToPILImage()(mixed_data[i]) for i in range(batch_size)]
+        return mixed_images
+
+# 应用MixUp增强
+mixup = MixUp(alpha=0.6)
+mixup_augmented_images = mixup([image1, image2])
+
+# 展示原始图像和增强后的图像
+fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+axes[0, 0].imshow(image1)
+axes[0, 0].set_title('Original Image 1')
+axes[0, 1].imshow(image2)
+axes[0, 1].set_title('Original Image 2')
+axes[1, 0].imshow(mixup_augmented_images[0])
+axes[1, 0].set_title('MixUp Augmented Image 1')
+axes[1, 1].imshow(mixup_augmented_images[1])
+axes[1, 1].set_title('MixUp Augmented Image 2')
+
+for ax in axes.flatten():
+    ax.axis('off')
+
+plt.show()
+
+```
+
+我们创建了一个MixUp类，用于实现MixUp增强，使用'./example.jpg'和'./example2.jpg'图像共同组成一个batch，并进行MixUp增强，同时展示增强后的结果。以下是Mix up增强后的结果：
+
+<img src="assets/image-20230505212925534.png" alt="image-20230505212925534" style="zoom:75%;" />
+
